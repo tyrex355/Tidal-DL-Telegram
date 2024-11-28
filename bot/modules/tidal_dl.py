@@ -19,29 +19,7 @@ logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("aiohttp").setLevel(logging.WARNING)
 logging.getLogger("charset_normalizer").setLevel(logging.WARNING)
 
-# Bot Commands Class
-bot = Config.BOT_USERNAME
-
-class CMD(object):
-    START = ["start", f"start@{bot}"]
-    HELP = ["help", f"help@{bot}"]
-    SETTINGS = ["settings", f"settings@{bot}"]
-    DOWNLOAD = ["download", f"download@{bot}"]
-    AUTH = ["auth", f"auth@{bot}"]
-    ADD_ADMIN = ["add_sudo", f"add_sudo@{bot}"]
-    SHELL = ["shell", f"shell@{bot}"]
-    INDEX = ["index", f"index@{bot}"]
-
-# Pyrogram Client Initialization
-USER = Client(
-    name="TidalDlUser",
-    session_string=Config.USER_SESSION,
-    api_id=Config.APP_ID,
-    api_hash=Config.API_HASH
-)
-
-# Link Handling Function
-@Client.on_message(filters.text & ~filters.command)  # Match text messages but exclude commands
+@Client.on_message(filters.text & ~filters.command(CMD.DOWNLOAD))  # Match text messages but exclude /download command
 async def handle_links(bot, update: Message):
     if check_id(message=update):  # Check if the user is authorized
         try:
@@ -100,6 +78,5 @@ async def handle_links(bot, update: Message):
                 reply_to_message_id=update.id
             )
 
-# Start the bot if running as a script
 if __name__ == "__main__":
-    USER.run()
+    Client.run()
