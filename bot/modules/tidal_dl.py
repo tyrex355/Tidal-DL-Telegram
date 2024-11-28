@@ -7,19 +7,13 @@ from bot.helpers.utils.auth_check import check_id
 from bot.helpers.utils.check_link import check_link
 from bot.helpers.tidal_func.events import checkLogin, start
 
-# Logger Configuration
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 LOGGER = logging.getLogger(__name__)
 
-logging.getLogger("pyrogram").setLevel(logging.WARNING)
-logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.getLogger("aiohttp").setLevel(logging.WARNING)
-logging.getLogger("charset_normalizer").setLevel(logging.WARNING)
-
-@Client.on_message(filters.text & ~filters.command(CMD.DOWNLOAD))  # Match text messages but exclude /download command
+@Client.on_message(filters.text & ~filters.command(CMD.START + CMD.HELP + CMD.DOWNLOAD + CMD.AUTH + CMD.ADD_ADMIN + CMD.SHELL + CMD.INDEX))  # Exclude commands
 async def handle_links(bot, update: Message):
     if check_id(message=update):  # Check if the user is authorized
         try:
