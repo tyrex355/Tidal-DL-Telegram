@@ -149,7 +149,7 @@ async def downloadTrack(track: Track, album=None, playlist=None, userProgress=No
 
         stream = TIDAL_API.getStreamUrl(track.id, quality)
         path = getTrackPath(track, stream, album, playlist)
-        temp_converted_path = path.rsplit(".", 1)[0] + '_temp.mp3'  # Temporary path for conversion
+        converted_path = path.rsplit(".", 1)[0] + '_converted.mp3'  # Path for converted MP3 file
 
         # Download
         tool = aigpy.download.DownloadTool(path + '.part', [stream.url])
@@ -166,15 +166,19 @@ async def downloadTrack(track: Track, album=None, playlist=None, userProgress=No
         # Convert to MP3 (320kbps) using ffmpeg
         try:
             conversion_command = [
-                'ffmpeg', '-i', path, '-b:a', '320k', temp_converted_path, '-y'
+                'ffmpeg', '-i', path, '-b:a', '320k', converted_path, '-y'
             ]
             subprocess.run(conversion_command, check=True)
-
-            # Rename the temporary file to the original name
-            os.replace(temp_converted_path, path)
         except subprocess.CalledProcessError as e:
             LOGGER.warning(f"Failed to convert track to MP3: {track.title}. {str(e)}")
             return False, str(e)
+
+        # Rename file if it contains '_converted'
+        if '_converted' in converted_path:
+            final_path = converted_path.replace('_converted', '')
+            os.rename(converted_path, final_path)
+        else:
+            final_path = converted_path
 
         # Contributors
         try:
@@ -186,19 +190,19 @@ async def downloadTrack(track: Track, album=None, playlist=None, userProgress=No
         try:
             lyrics = TIDAL_API.getLyrics(track.id).subtitles
             if SETTINGS.lyricFile:
-                lrcPath = path.rsplit(".", 1)[0] + '.lrc'
+                lrcPath = final_path.rsplit(".", 1)[0] + '.lrc'
                 aigpy.fileHelper.write(lrcPath, lyrics, 'w')
         except:
             lyrics = ''
 
-        __setMetaData__(track, album, path, contributors, lyrics)
+        __setMetaData__(track, album, final_path, contributors, lyrics)
 
         thumb = await downloadThumb(album, r_id)
 
         # Upload the converted file to Telegram
         media_file = await bot.send_audio(
             chat_id=c_id,
-            audio=path,
+            audio=final_path,
             duration=track.duration,
             performer=TIDAL_API.getArtistsName(track.artists),
             title=track.title,
@@ -214,6 +218,7 @@ async def downloadTrack(track: Track, album=None, playlist=None, userProgress=No
         # Remove the files after uploading
         os.remove(thumb)
         os.remove(path)
+        os.remove(final_path)
 
         LOGGER.info("Successfully downloaded and converted " + track.title)
         return True, ''
