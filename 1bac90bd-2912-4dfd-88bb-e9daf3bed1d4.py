@@ -53,14 +53,15 @@ def __setMetaData__(track: Track, album: Album, filepath, contributors, lyrics):
     if not aigpy.string.isNull(track.version):
         obj.title += ' (' + track.version + ')'
 
-    obj.artist = list(map(lambda artist: artist.name, track.artists))
+    # Maintain exact artist format
+    obj.artist = "; ".join([artist.name for artist in track.artists])  # Using ';' for FLAC-like formatting
     obj.copyright = track.copyRight
     obj.tracknumber = track.trackNumber
     obj.discnumber = track.volumeNumber
     obj.composer = __parseContributors__('Composer', contributors)
     obj.isrc = track.isrc
 
-    obj.albumartist = list(map(lambda artist: artist.name, album.artists))
+    obj.albumartist = "; ".join([artist.name for artist in album.artists])
     obj.date = album.releaseDate
     obj.totaldisc = album.numberOfVolumes
     obj.lyrics = lyrics
