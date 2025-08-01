@@ -7,6 +7,35 @@ from datetime import datetime, timedelta
 from urllib.parse import urlparse
 from telethon import TelegramClient, events, Button
 from mutagen import File
+from concurrent.futures import ThreadPoolExecutor
+import asyncio
+
+from orpheus.core import Orpheus, orpheus_core_download
+from orpheus.music_downloader import DownloadTypeEnum, MediaIdentification, ModuleModes
+
+# Allow 5 concurrent downloads globally
+download_executor = ThreadPoolExecutor(max_workers=5)
+
+async def run_orpheus_download(url, content_type, format_choice):
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(download_executor, blocking_download, url, content_type, format_choice)
+
+def blocking_download(url, content_type, format_choice):
+    orpheus = Orpheus(private=False)
+    modulename = 'beatport'  # hardcoded for now, or parse from URL
+    components = urlparse(url).path.split('/')
+    media_type = DownloadTypeEnum.album if content_type == 'album' else DownloadTypeEnum.track
+    media_id = components[-1]
+    media = {modulename: [MediaIdentification(media_type=media_type, media_id=media_id)]}
+
+    tpm = {
+        ModuleModes.lyrics: None,
+        ModuleModes.covers: None,
+        ModuleModes.credits: None
+    }
+    sdm = 'default'
+    path = orpheus.settings['global']['general']['download_path']
+    orpheus_core_download(orpheus, media, tpm, sdm, path)
 
 api_id = '10074048'
 api_hash = 'a08b1ed3365fa3b04bcf2bcbf71aff4d'
@@ -214,7 +243,7 @@ async def callback_query_handler(event):
         release_id = components[-1]
 
         # Run your external download script (orpheus.py)
-        os.system(f'python orpheus.py {input_text}')
+        await run_orpheus_download(input_text, content_type, format_choice)
 
         if content_type == "album":
             root_path = f'downloads/{release_id}'
