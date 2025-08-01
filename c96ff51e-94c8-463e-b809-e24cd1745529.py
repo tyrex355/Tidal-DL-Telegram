@@ -1,4 +1,5 @@
 import os
+import asyncio
 import re
 import shutil
 import subprocess
@@ -213,8 +214,19 @@ async def callback_query_handler(event):
         components = url.path.split('/')
         release_id = components[-1]
 
-        # Run your external download script (orpheus.py)
-        os.system(f'python orpheus.py {input_text}')
+        import asyncio  # Make sure this is at the top of your file
+
+# Run your external download script (orpheus.py) asynchronously
+proc = await asyncio.create_subprocess_exec(
+    'python', 'orpheus.py', input_text,
+    stdout=asyncio.subprocess.PIPE,
+    stderr=asyncio.subprocess.PIPE
+)
+stdout, stderr = await proc.communicate()
+
+if proc.returncode != 0:
+    await event.reply(f"⚠️ Download failed:\n<code>{stderr.decode()}</code>", parse_mode='html')
+    return
 
         if content_type == "album":
             root_path = f'downloads/{release_id}'
